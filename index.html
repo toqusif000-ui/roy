@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#171210">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%90%9D%3C/text%3E%3C/svg%3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>РОЙ — идеи, которые не теряются</title>
@@ -13,16 +14,28 @@
 <style>
 :root{
   --bg:#171210;
-  --surface:#211915;
-  --surface2:#2b211b;
-  --line:#3a2c23;
+  --bg-2:#1e1712;
+  --surface:#221913;
+  --surface2:#2b211a;
+  --surface3:#352a20;
+  --line:#3b2d23;
+  --line-soft:#2f2419;
   --text:#f5ebdf;
-  --muted:#a68e7c;
-  --caramel:#eda65c;   /* Платформа */
-  --razz:#ef7d9b;      /* Блог */
-  --pista:#a9c79b;     /* Прочее */
+  --muted:#b6a08d;          /* поднят контраст (AA) */
+  --faint:#9a8472;          /* плейсхолдеры (AA) */
+  --caramel:#eda65c;        /* Платформа + акцент */
+  --caramel-hi:#f7c081;
+  --razz:#ef7d9b;           /* Блог */
+  --pista:#a9c79b;          /* Прочее */
   --danger:#e2574b;
+  --danger-hi:#f2897d;
   --radius:18px;
+  --radius-sm:12px;
+  --radius-lg:26px;
+  --hl:rgba(255,238,214,.05);          /* верхняя подсветка кромки */
+  --shadow-1:0 14px 34px -20px rgba(0,0,0,.82);
+  --shadow-2:0 26px 60px -26px rgba(0,0,0,.88);
+  --ease:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -31,131 +44,167 @@ body{
   color:var(--text);
   font-family:'Golos Text',system-ui,-apple-system,sans-serif;
   font-size:15px;
-  line-height:1.45;
+  line-height:1.5;
   -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
   overscroll-behavior-y:none;
+  position:relative;
+}
+/* тёплое свечение сверху + мягкий переход — глубина без нагрузки */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(125% 72% at 50% -12%, #2c1e13 0%, rgba(44,30,19,0) 56%),
+    radial-gradient(80% 55% at 100% 0%, rgba(237,166,92,.05) 0%, rgba(237,166,92,0) 42%),
+    linear-gradient(180deg, var(--bg-2), var(--bg) 32%);
+}
+/* тонкое матовое зерно — «дорогая» текстура, только на фиксированном слое */
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.03;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
-button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px solid var(--caramel);outline-offset:2px}
+button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visible{outline:2px solid var(--caramel);outline-offset:2px;border-radius:6px}
 input,textarea{font-family:inherit;color:var(--text)}
+::selection{background:rgba(237,166,92,.26);color:#fff}
 
-.app{max-width:640px;margin:0 auto;padding:14px 16px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:100dvh}
+.app{max-width:600px;margin:0 auto;padding:16px 18px calc(30px + env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:100dvh;animation:appIn .5s var(--ease) both}
+@keyframes appIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 
 /* ── Шапка ─────────────────────────── */
-header{display:flex;align-items:baseline;gap:10px;padding:6px 2px 14px}
-.logo{font-family:'Unbounded',sans-serif;font-weight:700;font-size:26px;letter-spacing:.04em}
-.logo em{font-style:normal;color:var(--caramel)}
-.tagline{color:var(--muted);font-size:12px;flex:1}
-.iconbtn{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);flex:none;align-self:center}
-.iconbtn:active{transform:scale(.94)}
-.iconbtn svg{width:18px;height:18px;stroke:var(--muted)}
+header{display:flex;align-items:center;gap:12px;padding:8px 2px 18px}
+.logo{font-family:'Unbounded',sans-serif;font-weight:700;font-size:27px;letter-spacing:.02em;line-height:1}
+.logo em{font-style:normal;color:var(--caramel);text-shadow:0 0 24px rgba(237,166,92,.5)}
+.tagline{color:var(--muted);font-size:12px;flex:1;letter-spacing:.01em}
+.iconbtn{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);flex:none;box-shadow:0 1px 0 var(--hl) inset;transition:transform .15s var(--ease),border-color .2s}
+.iconbtn:hover{border-color:#4c3a2c}
+.iconbtn:active{transform:scale(.92)}
+.iconbtn svg{width:18px;height:18px;stroke:var(--muted);transition:stroke .2s}
+.iconbtn:hover svg{stroke:var(--caramel)}
 
 /* ── Захват идеи ────────────────────── */
-.capture{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.capture{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow-1),0 1px 0 var(--hl) inset;transition:border-color .25s,box-shadow .25s}
+.capture:focus-within{border-color:rgba(237,166,92,.5);box-shadow:0 0 0 3px rgba(237,166,92,.1),var(--shadow-1)}
 .capture textarea{
   width:100%;background:transparent;border:none;resize:none;
-  font-size:16px;line-height:1.5;min-height:56px;max-height:220px;
+  font-size:16px;line-height:1.55;min-height:58px;max-height:220px;
 }
-.capture textarea::placeholder{color:#6f5c4d}
-.cap-row{display:flex;align-items:center;gap:10px;margin-top:10px}
-.hint{color:var(--muted);font-size:12px;flex:1}
+.capture textarea::placeholder{color:var(--faint)}
+.cap-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.hint{color:var(--muted);font-size:12px;flex:1;line-height:1.4}
 .micbtn{
-  width:42px;height:42px;border-radius:50%;flex:none;
-  background:var(--surface2);border:1px solid var(--line);
-  display:none;place-items:center;font-size:18px;
+  width:44px;height:44px;border-radius:50%;flex:none;
+  background:linear-gradient(180deg,var(--surface3),var(--surface2));border:1px solid var(--line);
+  display:none;place-items:center;font-size:18px;box-shadow:0 1px 0 var(--hl) inset;
+  transition:transform .15s var(--ease),border-color .2s;
 }
-.micbtn.on{border-color:var(--danger);animation:pulse 1.2s infinite}
+.micbtn:active{transform:scale(.92)}
+.micbtn.on{border-color:var(--danger);animation:pulse 1.4s infinite}
 @keyframes pulse{
   0%{box-shadow:0 0 0 0 rgba(226,87,75,.45)}
-  70%{box-shadow:0 0 0 12px rgba(226,87,75,0)}
+  70%{box-shadow:0 0 0 13px rgba(226,87,75,0)}
   100%{box-shadow:0 0 0 0 rgba(226,87,75,0)}
 }
 .savebtn{
-  flex:none;padding:12px 22px;border-radius:14px;
-  background:linear-gradient(160deg,var(--caramel),#d98a3f);
-  color:#241503;font-weight:600;font-size:15px;
-  box-shadow:0 4px 18px rgba(237,166,92,.22);
+  flex:none;padding:13px 24px;border-radius:14px;
+  background:linear-gradient(165deg,var(--caramel-hi),var(--caramel) 46%,#d98a3f);
+  color:#2a1802;font-weight:600;font-size:15px;letter-spacing:.01em;
+  box-shadow:0 8px 22px -8px rgba(237,166,92,.55),0 1px 0 rgba(255,255,255,.35) inset;
+  transition:transform .16s var(--ease),box-shadow .25s,filter .2s;
 }
-.savebtn:active{transform:scale(.97)}
-.savebtn:disabled{opacity:.5}
+.savebtn:hover{transform:translateY(-1px);box-shadow:0 13px 30px -8px rgba(237,166,92,.68),0 1px 0 rgba(255,255,255,.4) inset;filter:brightness(1.04)}
+.savebtn:active{transform:translateY(0) scale(.98)}
+.savebtn:disabled{opacity:.5;box-shadow:none;transform:none}
 
 /* ── Переключатель видов ────────────── */
-.segment{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:14px}
-.segment button{flex:1;padding:9px 0;border-radius:999px;color:var(--muted);font-weight:500;font-size:14px;transition:background .15s,color .15s}
-.segment button.active{background:rgba(237,166,92,.14);color:var(--caramel)}
+.segment{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:16px;box-shadow:0 1px 0 var(--hl) inset}
+.segment button{flex:1;padding:10px 0;border-radius:999px;color:var(--muted);font-weight:500;font-size:14px;letter-spacing:.01em;transition:color .2s,background .28s var(--ease),box-shadow .28s}
+.segment button.active{background:linear-gradient(180deg,rgba(237,166,92,.2),rgba(237,166,92,.11));color:var(--caramel-hi);box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 6px 16px -11px rgba(237,166,92,.6)}
 
 /* ── Список ─────────────────────────── */
-.search{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:11px 14px;font-size:15px;margin-bottom:10px}
-.search::placeholder{color:#6f5c4d}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.search{width:100%;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:14px;padding:12px 15px;font-size:15px;margin-bottom:12px;box-shadow:0 1px 0 var(--hl) inset;transition:border-color .2s,box-shadow .2s}
+.search:focus{border-color:rgba(237,166,92,.45)}
+.search::placeholder{color:var(--faint)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:13px;white-space:nowrap}
-.chip.active{color:var(--text);border-color:var(--caramel)}
-.chip .n{opacity:.6;font-size:11px;margin-left:4px}
+.chip{flex:none;padding:8px 15px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:13px;white-space:nowrap;transition:transform .15s var(--ease),border-color .2s,color .2s,background .2s}
+.chip:active{transform:scale(.95)}
+.chip.active{color:var(--text);border-color:var(--caramel);background:rgba(237,166,92,.1)}
+.chip .n{opacity:.55;font-size:11px;margin-left:5px;font-variant-numeric:tabular-nums}
 
-.cards{display:flex;flex-direction:column;gap:10px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;cursor:pointer}
-.card:active{transform:scale(.99)}
-.card-top{display:flex;align-items:flex-start;gap:8px}
-.dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5.5px}
-.card h3{font-size:15px;font-weight:600;flex:1}
-.card .date{color:var(--muted);font-size:11px;flex:none;margin-top:2px}
-.card .sum{color:var(--muted);font-size:13.5px;margin-top:6px}
-.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
-.tag{font-size:11px;color:var(--muted);background:var(--surface2);border-radius:999px;padding:3px 9px}
-.pending{margin-top:6px;font-size:13px;color:var(--caramel);
+.cards{display:flex;flex-direction:column;gap:11px}
+.card{position:relative;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;cursor:pointer;box-shadow:0 1px 0 var(--hl) inset;transition:transform .18s var(--ease),border-color .2s,box-shadow .25s}
+.card:hover{transform:translateY(-2px);border-color:#4a3a2c;box-shadow:var(--shadow-1),0 1px 0 var(--hl) inset}
+.card:active{transform:translateY(0) scale(.99)}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:6px;box-shadow:0 0 0 4px rgba(255,255,255,.02)}
+.card h3{font-size:15.5px;font-weight:600;flex:1;line-height:1.35}
+.card .date{color:var(--muted);font-size:11px;flex:none;margin-top:3px;font-variant-numeric:tabular-nums}
+.card .sum{color:var(--muted);font-size:13.5px;margin-top:7px;line-height:1.5}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:11px;color:var(--muted);background:var(--surface3);border:1px solid var(--line-soft);border-radius:999px;padding:3px 10px}
+.pending{margin-top:7px;font-size:13px;color:var(--caramel);
   background:linear-gradient(90deg,var(--caramel) 25%,#fff2 50%,var(--caramel) 75%);
   background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
   animation:shimmer 1.6s linear infinite}
 @keyframes shimmer{to{background-position:-200% 0}}
-.ai-err{margin-top:6px;font-size:12.5px;color:var(--danger)}
-.empty{text-align:center;color:var(--muted);padding:44px 20px;font-size:14px}
-.empty b{display:block;font-family:'Unbounded',sans-serif;font-weight:500;color:var(--text);font-size:16px;margin-bottom:8px}
+.ai-err{margin-top:7px;font-size:12.5px;color:var(--danger-hi);line-height:1.45}
+.empty{text-align:center;color:var(--muted);padding:54px 24px;font-size:14px;line-height:1.6}
+.empty b{display:block;font-family:'Unbounded',sans-serif;font-weight:500;color:var(--text);font-size:17px;margin-bottom:10px}
+.empty b::before{content:"🐝";display:block;font-size:30px;margin:0 auto 14px;filter:drop-shadow(0 8px 18px rgba(237,166,92,.4))}
 
 /* ── Граф ───────────────────────────── */
-.graphwrap{position:relative;flex:1;min-height:420px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
-  background:radial-gradient(ellipse at 50% 25%,#241a14 0%,var(--bg) 65%)}
+.graphwrap{position:relative;flex:1;min-height:440px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 22%,#241a13 0%,var(--bg) 62%);box-shadow:0 1px 0 var(--hl) inset,var(--shadow-1)}
 .graphwrap canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
-.legend{position:absolute;left:10px;top:10px;display:flex;gap:10px;flex-wrap:wrap;pointer-events:none}
-.legend span{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);background:rgba(23,18,16,.7);padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px)}
-.legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
-.fitbtn{position:absolute;right:10px;bottom:10px;width:38px;height:38px;border-radius:12px;background:rgba(33,25,21,.85);border:1px solid var(--line);color:var(--muted);font-size:16px;backdrop-filter:blur(4px)}
-.graph-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:20px;pointer-events:none}
+.legend{position:absolute;left:12px;top:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none}
+.legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:rgba(23,18,16,.72);padding:5px 10px;border-radius:999px;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.04)}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block;box-shadow:0 0 8px currentColor}
+.fitbtn{position:absolute;right:12px;bottom:12px;width:40px;height:40px;border-radius:12px;background:rgba(33,25,21,.85);border:1px solid var(--line);color:var(--muted);font-size:16px;backdrop-filter:blur(6px);box-shadow:var(--shadow-1);transition:transform .15s var(--ease),color .2s,border-color .2s}
+.fitbtn:hover{color:var(--caramel);border-color:#4c3a2c}
+.fitbtn:active{transform:scale(.92)}
+.graph-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:20px;pointer-events:none;line-height:1.6}
 
 /* ── Шторки (карточка / настройки) ──── */
-.backdrop{position:fixed;inset:0;background:rgba(10,7,5,.62);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.backdrop{position:fixed;inset:0;background:rgba(8,5,3,.66);opacity:0;pointer-events:none;transition:opacity .28s;z-index:40;backdrop-filter:blur(3px)}
 .backdrop.open{opacity:1;pointer-events:auto}
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:50;
-  max-width:640px;margin:0 auto;max-height:85dvh;overflow-y:auto;
-  background:var(--surface2);border:1px solid var(--line);border-bottom:none;
-  border-radius:24px 24px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));
-  transform:translateY(105%);transition:transform .24s cubic-bezier(.3,.9,.3,1);
+  max-width:600px;margin:0 auto;max-height:88dvh;overflow-y:auto;
+  background:linear-gradient(180deg,var(--surface3),var(--surface2));border:1px solid var(--line);border-bottom:none;
+  border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .3s var(--ease);box-shadow:var(--shadow-2);
 }
 .sheet.open{transform:translateY(0)}
-.grip{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 16px}
-.sheet h2{font-family:'Unbounded',sans-serif;font-weight:500;font-size:17px;margin-bottom:4px}
-.sheet .meta{color:var(--muted);font-size:12px;margin-bottom:14px}
-.sheet .sum{font-size:14.5px;margin-bottom:14px}
-.sheet .raw{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:14px;white-space:pre-wrap}
-.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.grip{width:42px;height:4px;border-radius:99px;background:var(--line);margin:2px auto 18px;opacity:.85}
+.sheet h2{font-family:'Unbounded',sans-serif;font-weight:500;font-size:18px;margin-bottom:6px;letter-spacing:.01em;outline:none}
+.sheet .meta{color:var(--muted);font-size:12px;margin-bottom:16px}
+.sheet .sum{font-size:15px;margin-bottom:16px;line-height:1.55}
+.sheet .raw{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:16px;white-space:pre-wrap;line-height:1.5}
+.lbl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin-bottom:9px;font-weight:600}
 .catpick{display:flex;gap:8px;margin-bottom:16px}
-.catpick button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:13px}
-.catpick button.on{color:var(--text)}
-.sheet-actions{display:flex;gap:10px;margin-top:6px}
-.btn{flex:1;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-weight:500;font-size:14px}
-.btn.warn{color:var(--danger);border-color:rgba(226,87,75,.35)}
-.btn.accent{background:rgba(237,166,92,.14);color:var(--caramel);border-color:rgba(237,166,92,.4)}
+.catpick button{padding:9px 15px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:13px;background:var(--surface);transition:transform .15s var(--ease),border-color .2s,color .2s}
+.catpick button:active{transform:scale(.95)}
+.catpick button.on{color:var(--text);background:rgba(237,166,92,.1)}
+.sheet-actions{display:flex;gap:10px;margin-top:8px}
+.btn{flex:1;padding:13px;border-radius:14px;background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);font-weight:500;font-size:14px;box-shadow:0 1px 0 var(--hl) inset;transition:transform .15s var(--ease),border-color .2s}
+.btn:hover{border-color:#4a3a2c}
+.btn:active{transform:scale(.98)}
+.btn.warn{color:var(--danger);border-color:rgba(226,87,75,.3)}
+.btn.accent{background:linear-gradient(180deg,rgba(237,166,92,.18),rgba(237,166,92,.1));color:var(--caramel-hi);border-color:rgba(237,166,92,.4)}
 
 /* настройки */
-.set-block{margin-bottom:18px}
-.set-block p{color:var(--muted);font-size:13px;margin-top:8px}
-.keyinput{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px;margin-top:8px}
-.linky{color:var(--caramel);text-decoration:none}
+.set-block{margin-bottom:20px}
+.set-block p{color:var(--muted);font-size:13px;margin-top:9px;line-height:1.55}
+.keyinput{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:9px;transition:border-color .2s}
+.keyinput:focus{border-color:rgba(237,166,92,.45)}
+.keyinput::placeholder{color:var(--faint)}
+.linky{color:var(--caramel);text-decoration:none;border-bottom:1px solid rgba(237,166,92,.4);transition:color .2s}
+.linky:hover{color:var(--caramel-hi)}
 
 /* тост */
-.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--surface2);border:1px solid var(--line);
-  color:var(--text);font-size:13.5px;padding:11px 18px;border-radius:999px;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:88vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:linear-gradient(180deg,var(--surface3),var(--surface2));border:1px solid var(--line);
+  color:var(--text);font-size:13.5px;padding:12px 20px;border-radius:999px;opacity:0;transition:.28s var(--ease);z-index:70;pointer-events:none;max-width:88vw;text-align:center;box-shadow:var(--shadow-2)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 
 [hidden]{display:none !important}
@@ -178,21 +227,21 @@ header{display:flex;align-items:baseline;gap:10px;padding:6px 2px 14px}
   </header>
 
   <section class="capture" id="captureBox">
-    <textarea id="rawInput" placeholder="Надиктуй или напиши идею…" rows="2"></textarea>
+    <textarea id="rawInput" placeholder="Надиктуй или напиши идею…" rows="2" aria-label="Новая идея"></textarea>
     <div class="cap-row">
-      <button class="micbtn" id="micBtn" aria-label="Голосовой ввод">🎤</button>
+      <button class="micbtn" id="micBtn" aria-label="Голосовой ввод" aria-pressed="false">🎤</button>
       <div class="hint" id="capHint"></div>
       <button class="savebtn" id="saveBtn">Сохранить идею</button>
     </div>
   </section>
 
-  <nav class="segment" role="tablist">
-    <button id="tabList" class="active">Список</button>
-    <button id="tabGraph">Граф</button>
+  <nav class="segment" role="tablist" aria-label="Вид">
+    <button id="tabList" class="active" role="tab" aria-selected="true" aria-controls="listView">Список</button>
+    <button id="tabGraph" role="tab" aria-selected="false" aria-controls="graphView">Граф</button>
   </nav>
 
-  <main id="listView">
-    <input class="search" id="searchInput" type="search" placeholder="Поиск по идеям…">
+  <main id="listView" role="tabpanel" aria-labelledby="tabList">
+    <input class="search" id="searchInput" type="search" placeholder="Поиск по идеям…" aria-label="Поиск по идеям">
     <div class="chips" id="catChips"></div>
     <div class="cards" id="cards"></div>
     <div class="empty" id="emptyState" hidden>
@@ -201,7 +250,7 @@ header{display:flex;align-items:baseline;gap:10px;padding:6px 2px 14px}
     </div>
   </main>
 
-  <main id="graphView" hidden>
+  <main id="graphView" role="tabpanel" aria-labelledby="tabGraph" hidden>
     <div class="graphwrap" id="graphWrap">
       <canvas id="graphCanvas"></canvas>
       <div class="legend" id="legend"></div>
@@ -214,9 +263,9 @@ header{display:flex;align-items:baseline;gap:10px;padding:6px 2px 14px}
 
 <!-- шторка карточки -->
 <div class="backdrop" id="backdrop"></div>
-<div class="sheet" id="detailSheet">
+<div class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-labelledby="dTitle" inert>
   <div class="grip"></div>
-  <h2 id="dTitle"></h2>
+  <h2 id="dTitle" tabindex="-1"></h2>
   <div class="meta" id="dMeta"></div>
   <div class="sum" id="dSummary"></div>
   <div class="lbl">Оригинал</div>
@@ -231,15 +280,15 @@ header{display:flex;align-items:baseline;gap:10px;padding:6px 2px 14px}
 </div>
 
 <!-- шторка настроек -->
-<div class="sheet" id="settingsSheet">
+<div class="sheet" id="settingsSheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" inert>
   <div class="grip"></div>
-  <h2>Настройки</h2>
+  <h2 id="settingsTitle" tabindex="-1">Настройки</h2>
   <div class="meta" id="statLine"></div>
 
   <div class="set-block" id="keyBlock" hidden>
     <div class="lbl">Ключ Gemini для ИИ-сортировки</div>
     <input class="keyinput" id="keyInput" type="password" placeholder="Вставь API-ключ сюда" autocomplete="off">
-    <p>Бесплатный ключ выдают на <span class="linky">aistudio.google.com</span> → «Get API key». Ключ хранится только в этом браузере, никуда не отправляется, кроме Google.</p>
+    <p>Бесплатный ключ выдают на <a class="linky" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a> → «Get API key». Ключ хранится только в этом браузере, никуда не отправляется, кроме Google.</p>
   </div>
 
   <div class="set-block" id="protoNote" hidden>
@@ -291,24 +340,50 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
+/* нормализация идеи из внешнего файла — защита от битых/вредоносных бэкапов */
+function sanitizeIdea(i){
+  if (!i || typeof i !== 'object') return null;
+  const id = i.id != null ? String(i.id) : '';
+  if (!id) return null;
+  return {
+    id,
+    raw: typeof i.raw === 'string' ? i.raw : '',
+    title: typeof i.title === 'string' && i.title.trim() ? i.title
+         : (typeof i.raw === 'string' ? i.raw.slice(0,52) : 'Без названия'),
+    summary: typeof i.summary === 'string' ? i.summary : '',
+    category: CATS.includes(i.category) ? i.category : 'Прочее',
+    tags: Array.isArray(i.tags) ? i.tags.map(t => String(t)).filter(Boolean).slice(0,8) : [],
+    createdAt: Number.isFinite(i.createdAt) ? i.createdAt : Date.now(),
+    processed: !!i.processed,
+    userCat: !!i.userCat
+  };
+}
+
 /* ── Хранилище ─────────────────────────────── */
 const store = {
   async load(){
     if (IN_ARTIFACT){
-      try{ const r = await window.storage.get('roi-ideas-v1'); return r && r.value ? JSON.parse(r.value) : []; }
+      try{ const r = await window.storage.get('roi-ideas-v1'); const d = r && r.value ? JSON.parse(r.value) : []; return Array.isArray(d) ? d : []; }
       catch(e){ return []; }
     }
-    try{ return JSON.parse(localStorage.getItem('roi-ideas-v1') || '[]'); }
-    catch(e){ return []; }
+    try{
+      const d = JSON.parse(localStorage.getItem('roi-ideas-v1') || '[]');
+      return Array.isArray(d) ? d : [];
+    }
+    catch(e){
+      // битый JSON — сохраняем копию, чтобы не потерять, и стартуем с чистого листа
+      try{ localStorage.setItem('roi-ideas-corrupt-' + Date.now(), localStorage.getItem('roi-ideas-v1') || ''); }catch(_){}
+      toast('Данные повреждены — сделал резервную копию, восстанови из файла');
+      return [];
+    }
   },
   async save(list){
     const s = JSON.stringify(list);
     if (IN_ARTIFACT){
-      try{ await window.storage.set('roi-ideas-v1', s); }catch(e){ console.error(e); }
-      return;
+      try{ await window.storage.set('roi-ideas-v1', s); return true; }catch(e){ console.error(e); return false; }
     }
-    try{ localStorage.setItem('roi-ideas-v1', s); }
-    catch(e){ toast('Не смог сохранить: память браузера переполнена'); }
+    try{ localStorage.setItem('roi-ideas-v1', s); return true; }
+    catch(e){ toast('Не смог сохранить: память браузера переполнена'); return false; }
   }
 };
 function getKey(){
@@ -483,11 +558,13 @@ async function processIdea(id){
   render();
   try{
     const r = await aiSort(idea.raw, allTags());
-    idea.title = (r.title || idea.title).trim();
-    idea.summary = (r.summary || '').trim();
-    idea.category = CATS.includes(r.category) ? r.category : 'Прочее';
-    idea.tags = Array.isArray(r.tags) ? r.tags.map(t => String(t).toLowerCase().trim()).filter(Boolean).slice(0,5) : [];
-    idea.processed = true;
+    const cur = ideas.find(x => x.id === id);   // объект мог быть удалён за время запроса
+    if (!cur){ pendingIds.delete(id); return; }
+    cur.title = (r.title || cur.title).trim();
+    cur.summary = (r.summary || '').trim();
+    if (!cur.userCat) cur.category = CATS.includes(r.category) ? r.category : 'Прочее'; // не затираем ручной выбор
+    cur.tags = Array.isArray(r.tags) ? r.tags.map(t => String(t).toLowerCase().trim()).filter(Boolean).slice(0,5) : [];
+    cur.processed = true;
     await persist();
   }catch(e){
     if (e.code === 'no-key'){
@@ -506,7 +583,8 @@ async function processIdea(id){
 
 /* ── Список ────────────────────────────────── */
 function fmtDate(ts){
-  return new Date(ts).toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
+  const d = new Date(ts);
+  return isNaN(d) ? '' : d.toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
 }
 function filtered(){
   const q = query.toLowerCase();
@@ -528,10 +606,14 @@ function renderChips(){
 function renderList(){
   renderChips();
   const list = filtered();
-  $('emptyState').hidden = ideas.length > 0;
+  const empty = $('emptyState');
+  empty.hidden = list.length > 0;
+  empty.innerHTML = ideas.length === 0
+    ? '<b>Пока пусто</b>Надиктуй первую идею — я сам разложу её по полочкам и придумаю теги.'
+    : '<b>Ничего не нашлось</b>Измени запрос или выбери другую категорию.';
   $('cards').innerHTML = list.map(i => {
     const pend = pendingIds.has(i.id);
-    return `<article class="card" data-id="${i.id}">
+    return `<article class="card" data-id="${esc(i.id)}">
       <div class="card-top">
         <span class="dot" style="background:${catColor(i.category)}"></span>
         <h3>${esc(i.title)}</h3>
@@ -561,7 +643,7 @@ function openDetail(id){
     `<button data-cat="${c}" class="${i.category===c?'on':''}" style="${i.category===c ? 'border-color:'+catColor(c)+';color:'+catColor(c) : ''}">${c}</button>`
   ).join('');
   $('dCats').querySelectorAll('button').forEach(b =>
-    b.onclick = async () => { i.category = b.dataset.cat; await persist(); render(); openDetail(id); });
+    b.onclick = async () => { i.category = b.dataset.cat; i.userCat = true; await persist(); render(); openDetail(id); });
   $('dRetry').hidden = !(i.aiError || !i.processed) || pendingIds.has(id);
   $('dRetry').onclick = () => { processIdea(id); };
   $('dDelete').onclick = async () => {
@@ -573,17 +655,31 @@ function openDetail(id){
 }
 
 /* ── Шторки общие ──────────────────────────── */
+let lastFocused = null;
 function showSheet(id){
+  lastFocused = document.activeElement;
   $('backdrop').classList.add('open');
-  $(id).classList.add('open');
+  const s = $(id);
+  $('detailSheet').setAttribute('inert', '');
+  $('settingsSheet').setAttribute('inert', '');
+  s.removeAttribute('inert');
+  s.classList.add('open');
+  const h = s.querySelector('h2');
+  if (h && h.focus) h.focus();
 }
 function closeSheets(){
   $('backdrop').classList.remove('open');
   $('detailSheet').classList.remove('open');
   $('settingsSheet').classList.remove('open');
+  $('detailSheet').setAttribute('inert', '');
+  $('settingsSheet').setAttribute('inert', '');
   detailId = null;
+  if (lastFocused && lastFocused.focus){ lastFocused.focus(); lastFocused = null; }
 }
 $('backdrop').onclick = closeSheets;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('backdrop').classList.contains('open')) closeSheets();
+});
 
 /* ── Настройки ─────────────────────────────── */
 $('gearBtn').onclick = () => {
@@ -614,13 +710,17 @@ $('importFile').addEventListener('change', e => {
   fr.onload = async () => {
     try{
       const data = JSON.parse(fr.result);
-      const arr = Array.isArray(data) ? data : (data.ideas || []);
+      const arr = Array.isArray(data) ? data : (data && Array.isArray(data.ideas) ? data.ideas : []);
       const have = new Set(ideas.map(i => i.id));
       let added = 0;
-      arr.forEach(i => { if (i && i.id && !have.has(i.id)){ ideas.push(i); added++; } });
+      arr.forEach(rawItem => {
+        const i = sanitizeIdea(rawItem);
+        if (i && !have.has(i.id)){ ideas.push(i); have.add(i.id); added++; }
+      });
       ideas.sort((a,b) => b.createdAt - a.createdAt);
-      await persist(); render();
-      toast(added ? `Подхватил идей: ${added}` : 'Новых идей в файле нет');
+      const ok = await persist(); render();
+      if (ok === false) toast('Импорт не влез в память браузера — сохранить не удалось');
+      else toast(added ? `Подхватил идей: ${added}` : 'Новых идей в файле нет');
     }catch(err){ toast('Файл не читается — это точно бэкап РОЯ?'); }
   };
   fr.readAsText(f);
@@ -666,9 +766,9 @@ if (SR && !isIOS && !IN_ARTIFACT){
       $('rawInput').value = recBase + fin + interim;
       autoGrow($('rawInput'));
     };
-    rec.onend = () => { recOn = false; $('micBtn').classList.remove('on'); };
+    rec.onend = () => { recOn = false; $('micBtn').classList.remove('on'); $('micBtn').setAttribute('aria-pressed','false'); };
     rec.onerror = ev => {
-      recOn = false; $('micBtn').classList.remove('on');
+      recOn = false; $('micBtn').classList.remove('on'); $('micBtn').setAttribute('aria-pressed','false');
       toast(ev.error === 'not-allowed' || ev.error === 'service-not-allowed'
         ? 'Браузер не пустил к микрофону — проверь разрешение на значке 🔒 в адресной строке'
         : 'Микрофон не сработал: ' + (ev.error || 'неизвестно'));
@@ -676,6 +776,7 @@ if (SR && !isIOS && !IN_ARTIFACT){
     rec.start();
     recOn = true;
     $('micBtn').classList.add('on');
+    $('micBtn').setAttribute('aria-pressed','true');
   };
 }
 
@@ -696,6 +797,8 @@ function setTab(t){
   currentTab = t;
   $('tabList').classList.toggle('active', t === 'list');
   $('tabGraph').classList.toggle('active', t === 'graph');
+  $('tabList').setAttribute('aria-selected', t === 'list');
+  $('tabGraph').setAttribute('aria-selected', t === 'graph');
   $('listView').hidden = t !== 'list';
   $('graphView').hidden = t !== 'graph';
   $('captureBox').style.display = t === 'list' ? '' : 'none';
@@ -851,7 +954,8 @@ const graph = (() => {
         ctx.stroke();
       }
       if (showLabels){
-        const t = n.idea.title.length > 20 ? n.idea.title.slice(0,20) + '…' : n.idea.title;
+        const raw = String(n.idea.title || '');
+        const t = raw.length > 20 ? raw.slice(0,20) + '…' : raw;
         ctx.font = `${11 / Math.max(scale, 0.9)}px 'Golos Text', sans-serif`;
         ctx.fillStyle = 'rgba(245,235,223,.75)';
         ctx.textAlign = 'center';
