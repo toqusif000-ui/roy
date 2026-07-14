@@ -295,6 +295,11 @@ header{display:flex;align-items:center;gap:12px;padding:8px 2px 18px}
     <p>Это прототип внутри чата: ИИ-сортировка уже работает, ключ не нужен. Поле для ключа появится в версии на GitHub Pages.</p>
   </div>
 
+  <div class="set-block" id="syncBlock" hidden>
+    <div class="lbl">Синхронизация между устройствами</div>
+    <div id="syncBody"></div>
+  </div>
+
   <div class="set-block">
     <div class="lbl">Бэкап</div>
     <p>Идеи живут в этом браузере. Раз в неделю жми «Экспорт» — файл упадёт в загрузки. «Импорт» подхватит его обратно и на другом устройстве.</p>
@@ -354,8 +359,10 @@ function sanitizeIdea(i){
     category: CATS.includes(i.category) ? i.category : 'Прочее',
     tags: Array.isArray(i.tags) ? i.tags.map(t => String(t)).filter(Boolean).slice(0,8) : [],
     createdAt: Number.isFinite(i.createdAt) ? i.createdAt : Date.now(),
+    updatedAt: Number.isFinite(i.updatedAt) ? i.updatedAt : (Number.isFinite(i.createdAt) ? i.createdAt : Date.now()),
     processed: !!i.processed,
-    userCat: !!i.userCat
+    userCat: !!i.userCat,
+    deleted: !!i.deleted
   };
 }
 
@@ -530,8 +537,104 @@ let currentTab = 'list';
 let detailId = null;
 const pendingIds = new Set();
 
-const allTags = () => [...new Set(ideas.flatMap(i => i.tags || []))].slice(0, 40);
+const allTags = () => [...new Set(ideas.filter(i => !i.deleted).flatMap(i => i.tags || []))].slice(0, 40);
 const persist = () => store.save(ideas);
+
+/* ══════════════════════════════════════════════
+   Синхронизация между устройствами по коду (GunDB).
+   Инварианты безопасности:
+   • localStorage — источник истины; синхронизация только аддитивна
+   • приходящее может ДОБАВить или ОБНОВить на более свежее (по updatedAt),
+     но НИКОГДА не удаляет локальную заметку
+   • пустой/сбойный ответ не трогает локальные данные
+   • перед первым слиянием сохраняется снимок roi-ideas-presync-<ts>
+   ══════════════════════════════════════════════ */
+const sync = (() => {
+  const CODE_KEY = 'roi-sync-code';
+  const ROOT = 'roy-sync-v1';
+  const PEERS = [
+    'https://relay.peer.ooo/gun',
+    'https://gun-manhattan.herokuapp.com/gun',
+    'https://peer.wallie.io/gun',
+    'https://gundb-relay-mlccl.onrender.com/gun'
+  ];
+  const GUN_CDN = 'https://cdn.jsdelivr.net/npm/gun/gun.js';
+  let gun = null, node = null, on = false, saveT = null;
+
+  function getCode(){ try{ return localStorage.getItem(CODE_KEY) || ''; }catch(e){ return ''; } }
+  function setCode(c){ try{ if (c) localStorage.setItem(CODE_KEY, c); else localStorage.removeItem(CODE_KEY); }catch(e){} }
+  function genCode(){
+    const w = ['мёд','рой','соты','нектар','улей','пыльца','воск','крыло','танец','прополис'];
+    const pick = () => w[Math.floor(Math.random() * w.length)];
+    return 'рой-' + pick() + '-' + pick() + '-' + Math.random().toString(36).slice(2,6);
+  }
+  async function hashCode(str){
+    try{
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+    }catch(e){ return 'x' + encodeURIComponent(str).replace(/%/g,'_'); }
+  }
+  function loadGun(){
+    return new Promise((resolve, reject) => {
+      if (window.Gun) return resolve(window.Gun);
+      const s = document.createElement('script');
+      s.src = GUN_CDN; s.async = true;
+      s.onload = () => window.Gun ? resolve(window.Gun) : reject(new Error('gun-missing'));
+      s.onerror = () => reject(new Error('gun-cdn-failed'));
+      document.head.appendChild(s);
+    });
+  }
+  function snapshot(){
+    try{ localStorage.setItem('roi-ideas-presync-' + Date.now(), JSON.stringify(ideas)); }catch(e){}
+  }
+  function commit(){
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+      ideas.sort((a,b) => b.createdAt - a.createdAt);
+      store.save(ideas); render();
+    }, 150);
+  }
+  // ЕДИНСТВЕННОЕ место, где применяются входящие данные — строго аддитивно
+  function applyRemote(id, val){
+    if (!val || typeof val.j !== 'string') return;     // пусто/мусор — не трогаем локальное
+    let r; try{ r = sanitizeIdea(JSON.parse(val.j)); }catch(e){ return; }
+    if (!r) return;
+    r.id = id;
+    const l = ideas.find(x => x.id === id);
+    if (!l){ ideas.push(r); commit(); return; }         // новой — добавляем
+    const lu = l.updatedAt || l.createdAt || 0;
+    const ru = r.updatedAt || r.createdAt || 0;
+    if (ru > lu){ Object.assign(l, r); commit(); }       // свежее — обновляем (локальное никогда не удаляем)
+  }
+  function push(idea){
+    if (!on || !node || !idea || !idea.id) return;
+    try{ node.get(idea.id).put({ j: JSON.stringify(idea), u: idea.updatedAt || idea.createdAt || Date.now() }); }catch(e){}
+  }
+  function pushAll(){ if (on && node) ideas.forEach(push); }
+  async function start(){
+    if (on) return true;
+    const code = getCode();
+    if (!code) return false;
+    snapshot();
+    try{
+      const G = await loadGun();
+      gun = G({ peers: PEERS, localStorage: false, radisk: false });
+      const h = await hashCode(code);
+      node = gun.get(ROOT).get(h);
+      node.map().on((val, id) => applyRemote(id, val));
+      on = true;
+      pushAll();
+      window.addEventListener('focus', pushAll);
+      renderSyncUI();
+      return true;
+    }catch(e){ on = false; node = null; renderSyncUI(e); return false; }
+  }
+  async function enableWith(code){ setCode(String(code || '').trim()); return start(); }
+  function disable(){ on = false; node = null; setCode(''); renderSyncUI(); }
+  function status(){ return { on, code: getCode() }; }
+
+  return { getCode, genCode, enableWith, disable, start, status, push, pushAll };
+})();
 
 /* ── Добавление и разбор ───────────────────── */
 async function addIdea(){
@@ -542,11 +645,12 @@ async function addIdea(){
     id: uid(), raw,
     title: raw.length > 52 ? raw.slice(0,52) + '…' : raw,
     summary: '', category: 'Прочее', tags: [],
-    createdAt: Date.now(), processed: false
+    createdAt: Date.now(), updatedAt: Date.now(), processed: false
   };
   ideas.unshift(idea);
   ta.value = ''; autoGrow(ta);
   await persist();
+  sync.push(idea);
   render();
   processIdea(idea.id);
 }
@@ -565,7 +669,9 @@ async function processIdea(id){
     if (!cur.userCat) cur.category = CATS.includes(r.category) ? r.category : 'Прочее'; // не затираем ручной выбор
     cur.tags = Array.isArray(r.tags) ? r.tags.map(t => String(t).toLowerCase().trim()).filter(Boolean).slice(0,5) : [];
     cur.processed = true;
+    cur.updatedAt = Date.now();
     await persist();
+    sync.push(cur);
   }catch(e){
     if (e.code === 'no-key'){
       idea.aiError = 'Нужен ключ для ИИ — открой ⚙ настройки';
@@ -589,13 +695,15 @@ function fmtDate(ts){
 function filtered(){
   const q = query.toLowerCase();
   return ideas.filter(i =>
+    !i.deleted &&
     (activeCat === 'Все' || i.category === activeCat) &&
     (!q || (i.title + ' ' + i.summary + ' ' + i.raw + ' ' + (i.tags||[]).join(' ')).toLowerCase().includes(q))
   );
 }
 function renderChips(){
-  const counts = { 'Все': ideas.length };
-  CATS.forEach(c => counts[c] = ideas.filter(i => i.category === c).length);
+  const live = ideas.filter(i => !i.deleted);
+  const counts = { 'Все': live.length };
+  CATS.forEach(c => counts[c] = live.filter(i => i.category === c).length);
   $('catChips').innerHTML = ['Все', ...CATS].map(c => {
     const col = c === 'Все' ? '' : `style="border-color:${activeCat===c ? catColor(c) : 'var(--line)'};${activeCat===c ? 'color:'+catColor(c) : ''}"`;
     return `<button class="chip ${activeCat===c?'active':''}" data-cat="${c}" ${col}>${c}<span class="n">${counts[c]}</span></button>`;
@@ -608,7 +716,7 @@ function renderList(){
   const list = filtered();
   const empty = $('emptyState');
   empty.hidden = list.length > 0;
-  empty.innerHTML = ideas.length === 0
+  empty.innerHTML = ideas.filter(i => !i.deleted).length === 0
     ? '<b>Пока пусто</b>Надиктуй первую идею — я сам разложу её по полочкам и придумаю теги.'
     : '<b>Ничего не нашлось</b>Измени запрос или выбери другую категорию.';
   $('cards').innerHTML = list.map(i => {
@@ -643,13 +751,14 @@ function openDetail(id){
     `<button data-cat="${c}" class="${i.category===c?'on':''}" style="${i.category===c ? 'border-color:'+catColor(c)+';color:'+catColor(c) : ''}">${c}</button>`
   ).join('');
   $('dCats').querySelectorAll('button').forEach(b =>
-    b.onclick = async () => { i.category = b.dataset.cat; i.userCat = true; await persist(); render(); openDetail(id); });
+    b.onclick = async () => { i.category = b.dataset.cat; i.userCat = true; i.updatedAt = Date.now(); await persist(); sync.push(i); render(); openDetail(id); });
   $('dRetry').hidden = !(i.aiError || !i.processed) || pendingIds.has(id);
   $('dRetry').onclick = () => { processIdea(id); };
   $('dDelete').onclick = async () => {
     if (!confirm('Удалить идею?')) return;
-    ideas = ideas.filter(x => x.id !== id);
-    await persist(); closeSheets(); render();
+    const it = ideas.find(x => x.id === id);
+    if (it){ it.deleted = true; it.updatedAt = Date.now(); }   // мягкое удаление (восстановимо, синхронизируется)
+    await persist(); if (it) sync.push(it); closeSheets(); render();
   };
   showSheet('detailSheet');
 }
@@ -682,11 +791,50 @@ document.addEventListener('keydown', e => {
 });
 
 /* ── Настройки ─────────────────────────────── */
+function renderSyncUI(err){
+  const body = $('syncBody');
+  if (!body) return;
+  const st = sync.status();
+  if (st.on){
+    body.innerHTML =
+      '<p>Включена. Введи этот код на других устройствах — там появятся те же заметки:</p>' +
+      '<input class="keyinput" id="syncCodeShow" readonly value="' + esc(st.code) + '">' +
+      '<div class="sheet-actions" style="margin-top:10px">' +
+        '<button class="btn accent" id="syncCopy">Скопировать код</button>' +
+        '<button class="btn warn" id="syncOff">Отключить</button>' +
+      '</div>' +
+      '<p style="margin-top:12px">' + (err
+        ? 'Пока не удалось подключиться к сети синхронизации. Заметки в безопасности локально — попробуй позже или проверь интернет.'
+        : 'Заметки объединяются автоматически. Код = доступ: держи его в секрете.') + '</p>';
+    $('syncCopy').onclick = () => {
+      const el = $('syncCodeShow'); el.focus(); el.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(st.code).catch(() => {});
+      else { try{ document.execCommand('copy'); }catch(e){} }
+      toast('Код скопирован');
+    };
+    $('syncOff').onclick = () => { sync.disable(); toast('Синхронизация выключена — заметки остались на месте'); };
+  } else {
+    body.innerHTML =
+      '<p>Сейчас заметки на каждом устройстве отдельные. Включи синхронизацию — и они будут держаться вместе на телефоне и компе.</p>' +
+      '<div class="sheet-actions" style="margin-top:10px"><button class="btn accent" id="syncOn">Включить синхронизацию</button></div>' +
+      '<p style="margin-top:14px">Уже есть код с другого устройства?</p>' +
+      '<input class="keyinput" id="syncCodeIn" placeholder="вставь код сюда" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+      '<div class="sheet-actions" style="margin-top:8px"><button class="btn" id="syncConnect">Подключить</button></div>';
+    $('syncOn').onclick = async () => { toast('Подключаю…'); await sync.enableWith(sync.genCode()); };
+    $('syncConnect').onclick = async () => {
+      const code = $('syncCodeIn').value.trim();
+      if (!code){ toast('Вставь код с другого устройства'); return; }
+      toast('Подключаю…'); await sync.enableWith(code);
+    };
+  }
+}
+
 $('gearBtn').onclick = () => {
-  $('statLine').textContent = `Идей в копилке: ${ideas.length}` + (IN_ARTIFACT ? ' · режим прототипа' : '');
+  $('statLine').textContent = `Идей в копилке: ${ideas.filter(i => !i.deleted).length}` + (IN_ARTIFACT ? ' · режим прототипа' : '');
   $('keyBlock').hidden = IN_ARTIFACT;
   $('protoNote').hidden = !IN_ARTIFACT;
-  if (!IN_ARTIFACT) $('keyInput').value = getKey();
+  $('syncBlock').hidden = IN_ARTIFACT;
+  if (!IN_ARTIFACT){ $('keyInput').value = getKey(); renderSyncUI(); }
   showSheet('settingsSheet');
 };
 $('keyInput').addEventListener('change', () => {
@@ -837,6 +985,7 @@ const graph = (() => {
   new ResizeObserver(resize).observe(wrap);
 
   function setData(list){
+    list = (list || []).filter(i => !i.deleted);
     const old = new Map(nodes.map(n => [n.id, n]));
     nodes = list.map((idea, k) => {
       const o = old.get(idea.id);
@@ -1114,6 +1263,7 @@ window.addEventListener('unhandledrejection', e => {
   ideas.sort((a,b) => b.createdAt - a.createdAt);
   render();
   autoGrow($('rawInput'));
+  if (!IN_ARTIFACT && sync.getCode()) sync.start();   // тихо поднимаем синхронизацию, если код уже задан
 })();
 </script>
 </body>
